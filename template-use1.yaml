@@ -1,0 +1,41 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  The Better Store Product API
+
+Transform:
+  - AWS::Serverless-2016-10-31
+
+Parameters:
+  Environment:
+    Type: String
+    Default: prod
+
+  InfraBaseCFName:
+    Type: String
+    Default: tbs-infra-base
+
+  StaticWebDomainName:
+    Type: String
+    Default: product-resources.thebetterstore.net
+
+Resources:
+
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Sub static-${AWS::Region}-${AWS::AccountId}-tbs-${Environment}
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - '*'
+            AllowedMethods:
+              - GET
+            AllowedOrigins:
+              - '*'
+            ExposedHeaders:
+              - Date

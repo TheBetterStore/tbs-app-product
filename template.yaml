@@ -1,0 +1,320 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  The Better Store Product API
+
+Transform:
+  - AWS::Serverless-2016-10-31
+
+Parameters:
+  Environment:
+    Type: String
+    Default: prod
+
+  InfraBaseCFName:
+    Type: String
+    Default: tbs-infra-base
+
+Resources:
+
+  ProductTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: "productId"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "productId"
+          KeyType: "HASH"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: false
+
+  LambdaExcecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: "/"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+
+  GetProductsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./dist/tbs-app-product.zip
+      Handler: lambda/get-products/index.handler
+      Runtime: nodejs14.x
+      MemorySize: 128
+      Timeout: 100
+      AutoPublishAlias: prod
+      Description: Get product functions
+      Tracing: Active
+      # Role: !GetAtt LambdaExcecutionRole.Arn
+      Environment:
+        Variables:
+          PRODUCT_TABLE_NAME: !Ref ProductTable
+      Policies:
+        - Statement:
+            - Sid: DynamoDbPolicy
+              Effect: Allow
+              Action:
+                - dynamodb:DescribeTable
+                - dynamodb:Query
+                - dynamodb:Scan
+                - dynamodb:Get*
+              Resource: !GetAtt ProductTable.Arn
+
+  UpsertProductFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./dist/tbs-app-product.zip
+      Handler: lambda/upsert-product/index.handler
+      Runtime: nodejs14.x
+      MemorySize: 128
+      Timeout: 100
+      AutoPublishAlias: prod
+      Description: Upsert product function
+      Tracing: Active
+      Environment:
+        Variables:
+          PRODUCT_TABLE_NAME: !Ref ProductTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ProductTable
+
+  CWLogGroupApiGwAccessLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Join ["", ["API-Gateway-Access-Logs_", !Sub "${AWS::StackName}"]]
+
+  GetProductsFunctionApiGatewayInvoke:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName: !Ref "GetProductsFunction.Alias"
+      Principal: "apigateway.amazonaws.com"
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ProductApi}/*"
+
+  UpsertProductFunctionApiGatewayInvoke:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName: !Ref "UpsertProductFunction.Alias"
+      Principal: "apigateway.amazonaws.com"
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ProductApi}/*"
+
+  ProductApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      EndpointConfiguration: REGIONAL
+      MinimumCompressionSize: 0
+      TracingEnabled: true
+      AccessLogSetting:
+        DestinationArn: !GetAtt CWLogGroupApiGwAccessLogs.Arn
+        Format: >
+          {"requestTimeEpoch": $context.requestTimeEpoch, "requestId":"$context.requestId",
+          "httpMethod": "$context.httpMethod", "path":"$context.path", "resourcePath": "$context.resourcePath",
+          "status": "$context.status",
+          "lambdaRequestId": "$context.integration.requestId", "integrationStatus": "$context.integration.status",
+          "xrayTraceId": "$context.xrayTraceId", "responseLatency": $context.responseLatency,
+          "integrationLatency": "$context.integrationLatency", "error": "$context.error.message",
+          "userAgent": "$context.identity.userAgent", "sourceIp": "$context.identity.sourceIp"}
+      MethodSettings:
+        - HttpMethod: "*"
+          ResourcePath: "/*"
+          DataTraceEnabled: false
+          MetricsEnabled: true # Enable detailed metrics (error 404, latence, ...)
+          ThrottlingRateLimit: 10
+          ThrottlingBurstLimit: 10
+      DefinitionBody:
+        openapi: "3.0.1"
+        info:
+          title: !Sub "${AWS::StackName}-api"
+          version: "2021-06-10T02:04:23Z"
+        paths:
+          /products:
+            get:
+              produces:
+                - "application/json"
+              responses:
+                "200":
+                  description: "200 response"
+                  schema:
+                    $ref: "#/definitions/Empty"
+                  headers:
+                    Strict-Transport-Security:
+                      schema:
+                        type: "string"
+                    Access-Control-Allow-Origin:
+                      schema:
+                        type: "string"
+                  content: {}
+              x-amazon-apigateway-integration:
+                httpMethod: "POST"
+                uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetProductsFunction.Arn}:prod/invocations"
+                responses:
+                  default:
+                    statusCode: "200"
+                    responseParameters:
+                      method.response.header.Strict-Transport-Security: "'max-age=31536000; includeSubdomains; preload'"
+                passthroughBehavior: "when_no_match"
+                contentHandling: "CONVERT_TO_TEXT"
+                type: "aws_proxy"
+            post:
+              produces:
+                - "application/json"
+              responses:
+                "200":
+                  description: "200 response"
+                  schema:
+                    $ref: "#/definitions/Empty"
+                  headers:
+                    Strict-Transport-Security:
+                      schema:
+                        type: "string"
+                    Access-Control-Allow-Origin:
+                      schema:
+                        type: "string"
+                  content: {}
+              x-amazon-apigateway-integration:
+                httpMethod: "POST"
+                uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UpsertProductFunction.Arn}:prod/invocations"
+                responses:
+                  default:
+                    statusCode: "200"
+                    responseParameters:
+                      method.response.header.Strict-Transport-Security: "'max-age=31536000; includeSubdomains; preload'"
+                passthroughBehavior: "when_no_match"
+                contentHandling: "CONVERT_TO_TEXT"
+                type: "aws_proxy"
+
+            options:
+              consumes:
+                - "application/json"
+              produces:
+                - "application/json"
+              responses:
+                "200":
+                  headers:
+                    Access-Control-Allow-Origin:
+                      type: "string"
+                    Access-Control-Allow-Methods:
+                      type: "string"
+                    Access-Control-Allow-Headers:
+                      type: "string"
+                    Strict-Transport-Security:
+                      type: "string"
+                    X-Frame-Options:
+                      type: "string"
+                    Content-Security-Policy:
+                      type: "string"
+              x-amazon-apigateway-integration:
+                responses:
+                  default:
+                    statusCode: "200"
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Methods: "'GET,POST,PATCH,PUT,DELETE,OPTIONS'"
+                      method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+                      method.response.header.Strict-Transport-Security: "'max-age=31536000; includeSubdomains; preload'"
+                      method.response.header.X-Frame-Options: "'DENY'"
+                      method.response.header.Content-Security-Policy: "'default-src \"none\"; frame-ancestors \"none\"'"
+                requestTemplates:
+                  application/json: "{\"statusCode\": 200}"
+                passthroughBehavior: "when_no_match"
+                type: "mock"
+
+          /products/{id}:
+            get:
+              produces:
+                - "application/json"
+              responses:
+                "200":
+                  description: "200 response"
+                  schema:
+                    $ref: "#/definitions/Empty"
+                  headers:
+                    Strict-Transport-Security:
+                      schema:
+                        type: "string"
+                    Access-Control-Allow-Origin:
+                      schema:
+                        type: "string"
+                  content: {}
+              x-amazon-apigateway-integration:
+                httpMethod: "POST"
+                uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetProductsFunction.Arn}:prod/invocations"
+                responses:
+                  default:
+                    statusCode: "200"
+                    responseParameters:
+                      method.response.header.Strict-Transport-Security: "'max-age=31536000; includeSubdomains; preload'"
+                passthroughBehavior: "when_no_match"
+                contentHandling: "CONVERT_TO_TEXT"
+                type: "aws_proxy"
+
+            options:
+              consumes:
+                - "application/json"
+              produces:
+                - "application/json"
+              responses:
+                "200":
+                  headers:
+                    Access-Control-Allow-Origin:
+                      type: "string"
+                    Access-Control-Allow-Methods:
+                      type: "string"
+                    Access-Control-Allow-Headers:
+                      type: "string"
+                    Strict-Transport-Security:
+                      type: "string"
+                    X-Frame-Options:
+                      type: "string"
+                    Content-Security-Policy:
+                      type: "string"
+              x-amazon-apigateway-integration:
+                responses:
+                  default:
+                    statusCode: "200"
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Methods: "'GET,POST,PATCH,PUT,DELETE,OPTIONS'"
+                      method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+                      method.response.header.Strict-Transport-Security: "'max-age=31536000; includeSubdomains; preload'"
+                      method.response.header.X-Frame-Options: "'DENY'"
+                      method.response.header.Content-Security-Policy: "'default-src \"none\"; frame-ancestors \"none\"'"
+                requestTemplates:
+                  application/json: "{\"statusCode\": 200}"
+                passthroughBehavior: "when_no_match"
+                type: "mock"
+
+  ApiBasePathMappingv2:
+    Type: AWS::ApiGatewayV2::ApiMapping
+    DependsOn:
+      - ProductApi
+    Properties:
+      DomainName:
+        Fn::ImportValue: !Sub ${InfraBaseCFName}-${Environment}:ApiGwCustomDomainName
+      ApiId: !Ref ProductApi
+      Stage: !Ref ProductApi.Stage
+      ApiMappingKey: "product/v1"
+
+Outputs:
+  ProductApiId:
+    Description: Id of Product api
+    Value: !Ref ProductApi
+    Export:
+      Name: !Sub '${AWS::StackName}:ProductApiId'
