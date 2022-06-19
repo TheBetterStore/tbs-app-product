@@ -26,7 +26,7 @@ gulp.task('buildonce', gulp.series('scripts', function() {
 
 gulp.task('config', function() {
   return gulp.src('src/resources/**')
-    .pipe(gulp.dest('dist/resources'));
+      .pipe(gulp.dest('dist/resources'));
 });
 
 // Here we want to install npm packages to dist, ignoring devDependencies.
