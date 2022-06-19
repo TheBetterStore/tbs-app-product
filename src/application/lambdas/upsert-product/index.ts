@@ -3,8 +3,8 @@ import TYPES from '../../../infrastructure/types';
 import container from './container';
 import {IProductService} from '../../../domain/interfaces/product-service.interface';
 import {IProduct} from '../../../domain/models/product.interface';
-import {Logger} from '@thebetterstore/tbs-lib-infra-common/dist/infrastructure/logger';
-import {HttpUtils} from '@thebetterstore/tbs-lib-infra-common/dist/infrastructure/utils/http-utils';
+import {Logger} from '@thebetterstore/tbs-lib-infra-common/lib/logger';
+import {HttpUtils} from '@thebetterstore/tbs-lib-infra-common/lib/http-utils';
 
 console.log('INFO - lambda is cold-starting.');
 exports.handler = async (event, context) => {

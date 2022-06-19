@@ -6,7 +6,7 @@ import {IDynamoDBClient} from '../interfaces/dynamodb-client.interface';
 import {DocumentClient} from 'aws-sdk/clients/dynamodb';
 import {v4} from 'uuid';
 const util = require('util');
-import {Logger} from '@thebetterstore/tbs-lib-infra-common/dist/infrastructure/logger';
+import {Logger} from '@thebetterstore/tbs-lib-infra-common/lib/logger';
 
 @injectable()
 export class ProductRepository implements IProductRepository {

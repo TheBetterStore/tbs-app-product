@@ -1,7 +1,7 @@
 import {IDynamoDBClient} from '../interfaces/dynamodb-client.interface';
 import {injectable} from 'inversify';
 import {DocumentClient, QueryInput} from 'aws-sdk/clients/dynamodb';
-import {Logger} from '@thebetterstore/tbs-lib-infra-common/dist/infrastructure/logger';
+import {Logger} from '@thebetterstore/tbs-lib-infra-common/lib/logger';
 
 // const AWSXRay = require('aws-xray-sdk-core');
 const AWS = require('aws-sdk');

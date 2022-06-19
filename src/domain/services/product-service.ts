@@ -3,7 +3,7 @@ import {inject, injectable} from 'inversify';
 import TYPES from '../../infrastructure/types';
 import {IProductRepository} from '../../infrastructure/interfaces/product-repository.interface';
 import {IProduct} from '../models/product.interface';
-import {Logger} from '@thebetterstore/tbs-lib-infra-common/dist/infrastructure/logger';
+import {Logger} from '@thebetterstore/tbs-lib-infra-common/lib/logger';
 
 @injectable()
 /**
