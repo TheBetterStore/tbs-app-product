@@ -4,11 +4,11 @@ export interface IProduct {
   name: string;
   type: 'PHYSICAL' | 'DIGITAL';
   bookDetails?: IBookDetails;
+  mobileDetails?: IMobileDetails;
   productDetails?: IProductDetails;
   sku: string;
   description: string;
   price: number;
-  brandId: string;
   hitCount: number;
   imageUrl: string;
   smallerImageUrl: string
@@ -28,4 +28,17 @@ export interface IBookDetails {
 export interface IProductDetails {
   sku: string;
   brandId: string;
+}
+
+export interface IMobileDetails {
+  brandId: string;
+  model: string;
+  sizeInches: number;
+  displayRes: string;
+  cpuType: string;
+  memoryGB: number;
+  storageGB: number;
+  batteryMah: number;
+  color: string;
+  weightGm: number;
 }
