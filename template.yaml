@@ -14,6 +14,14 @@ Parameters:
     Type: String
     Default: tbs-infra-base
 
+  AppLoggingLevel:
+    Type: String
+    Default: DEBUG
+
+  AllowedCorsDomains:
+    Type: String
+    Description: Define allowed client UI domains here. Use commas to separate if multiple.
+
 Resources:
 
   ProductTable:
@@ -52,18 +60,24 @@ Resources:
   GetProductsFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./dist/tbs-app-product.zip
+      CodeUri: ./
       Handler: lambda/get-products/index.handler
-      Runtime: nodejs14.x
-      MemorySize: 128
+      Runtime: nodejs24.x
+      MemorySize: 256
       Timeout: 100
       AutoPublishAlias: prod
       Description: Get product functions
+      ReservedConcurrentExecutions: 2
       Tracing: Active
       # Role: !GetAtt LambdaExcecutionRole.Arn
+      LoggingConfig:
+        LogGroup: !Ref GetProductsFunctionLogGroup
+        LogFormat: JSON
+        ApplicationLogLevel: !Ref AppLoggingLevel
       Environment:
         Variables:
           PRODUCT_TABLE_NAME: !Ref ProductTable
+          ALLOWED_CORS_DOMAINS: !Ref AllowedCorsDomains
       Policies:
         - Statement:
             - Sid: DynamoDbPolicy
@@ -74,24 +88,56 @@ Resources:
                 - dynamodb:Scan
                 - dynamodb:Get*
               Resource: !GetAtt ProductTable.Arn
+    Metadata: # Manage esbuild properties
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: false
+        Target: "es2020"
+        Sourcemap: true
+        EntryPoints:
+          - src/application/lambdas/get-products/index.ts
+
+  GetProductsFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-GetProductsFunction"
 
   UpsertProductFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./dist/tbs-app-product.zip
+      CodeUri: ./
       Handler: lambda/upsert-product/index.handler
-      Runtime: nodejs14.x
-      MemorySize: 128
+      Runtime: nodejs24.x
+      MemorySize: 256
       Timeout: 100
       AutoPublishAlias: prod
       Description: Upsert product function
+      ReservedConcurrentExecutions: 2
       Tracing: Active
+      LoggingConfig:
+        LogGroup: !Ref UpsertProductFunctionLogGroup
+        LogFormat: JSON
+        ApplicationLogLevel: !Ref AppLoggingLevel
       Environment:
         Variables:
           PRODUCT_TABLE_NAME: !Ref ProductTable
+          ALLOWED_CORS_DOMAINS: !Ref AllowedCorsDomains
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref ProductTable
+    Metadata: # Manage esbuild properties
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: false
+        Target: "es2020"
+        Sourcemap: true
+        EntryPoints:
+          - src/application/lambdas/upsert-product/index.ts
+
+  UpsertProductFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-UpsertProductFunction"
 
   CWLogGroupApiGwAccessLogs:
     Type: AWS::Logs::LogGroup
@@ -307,7 +353,7 @@ Resources:
       - ProductApi
     Properties:
       DomainName:
-        Fn::ImportValue: !Sub ${InfraBaseCFName}-${Environment}:ApiGwCustomDomainName
+        Fn::ImportValue: !Sub ${InfraBaseCFName}:ApiGwCustomDomain:Name
       ApiId: !Ref ProductApi
       Stage: !Ref ProductApi.Stage
       ApiMappingKey: "product/v1"

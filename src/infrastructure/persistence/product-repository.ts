@@ -6,7 +6,6 @@ import {IDynamoDBClient} from '../interfaces/dynamodb-client.interface';
 import {DocumentClient} from 'aws-sdk/clients/dynamodb';
 import {v4} from 'uuid';
 const util = require('util');
-import {Logger} from '@thebetterstore/tbs-lib-infra-common/lib/logger';
 
 @injectable()
 export class ProductRepository implements IProductRepository {
@@ -20,8 +19,8 @@ export class ProductRepository implements IProductRepository {
   }
 
   async getProduct(productId: string): Promise<IProduct> {
-    Logger.info('Entered ProductRepository.getProduct');
-    Logger.debug(`Retrieving product with is ${productId}`);
+    console.info('Entered ProductRepository.getProduct');
+    console.debug(`Retrieving product with is ${productId}`);
     const params: DocumentClient.GetItemInput = {
       TableName: this.productTableName,
       Key: {
@@ -29,12 +28,12 @@ export class ProductRepository implements IProductRepository {
       },
     };
     const res = await this.ddbClient.get(params);
-    Logger.info('Exiting ProductRepository.getProduct');
+    console.info('Exiting ProductRepository.getProduct');
     return res.Item as IProduct;
   }
 
   async getProducts(category: string): Promise<IProduct[]> {
-    Logger.info('Entered ProductRepository.getProducts');
+    console.info('Entered ProductRepository.getProducts');
     let params;
 
     if (category && category != 'ALL') {
@@ -50,14 +49,14 @@ export class ProductRepository implements IProductRepository {
         TableName: this.productTableName,
       };
     }
-    Logger.debug('Retrieving products for params:', params);
+    console.debug('Retrieving products for params:', params);
     const res = await this.ddbClient.scan(params);
-    Logger.info('Exiting ProductRepository.getProducts');
+    console.info('Exiting ProductRepository.getProducts');
     return res.Items as IProduct[];
   }
 
   async upsertProduct(p: IProduct): Promise<void> {
-    Logger.info('Entered ProductRepository.upsertProduct');
+    console.info('Entered ProductRepository.upsertProduct');
     const currentTime = new Date();
     if (!p.productId) {
       p.productId = v4();
@@ -71,7 +70,7 @@ export class ProductRepository implements IProductRepository {
     };
 
     const res = await this.ddbClient.put(params);
-    Logger.debug(util.inspect(res));
-    Logger.info('Exiting ProductRepository.upsertProduct');
+    console.debug(util.inspect(res));
+    console.info('Exiting ProductRepository.upsertProduct');
   }
 }

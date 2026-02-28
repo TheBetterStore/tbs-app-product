@@ -1,0 +1,11 @@
+{
+  "category": "COMPUTERS",
+  "name": "Chromebook Flip C214MA",
+  "type": "PHYSICAL",
+  "sku": "1234",
+  "description": "A 2-in-1 folding laptop/tablet",
+  "price": 562.13,
+  "brandId": "ASUS",
+  "hitCount": 1232,
+  "imageUrl": "https://static-ap-southeast-2-048116471576-tbs-prod.s3.ap-southeast-2.amazonaws.com/images/products/asuscb.png"
+}
