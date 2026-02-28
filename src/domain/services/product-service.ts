@@ -3,7 +3,6 @@ import {inject, injectable} from 'inversify';
 import TYPES from '../../infrastructure/types';
 import {IProductRepository} from '../../infrastructure/interfaces/product-repository.interface';
 import {IProduct} from '../models/product.interface';
-import {Logger} from '@thebetterstore/tbs-lib-infra-common/lib/logger';
 
 @injectable()
 /**
@@ -21,22 +20,22 @@ export class ProductService implements IProductService {
   }
 
   getProduct(productId: string): Promise<IProduct> {
-    Logger.info('Entered getProduct');
+    console.info('Entered getProduct');
     const p = this.repo.getProduct(productId);
-    Logger.info('Exiting getProduct');
+    console.info('Exiting getProduct');
     return p;
   }
 
   async getProducts(category: string): Promise<IProduct[]> {
-    Logger.info('Entered getProducts for category: ' + category);
+    console.info('Entered getProducts for category: ' + category);
     const p = await this.repo.getProducts(category);
-    Logger.info('Exiting getProducts');
+    console.info('Exiting getProducts');
     return p;
   }
 
   async upsertProduct(p: IProduct): Promise<void> {
-    Logger.info('Entered upsertProduct');
+    console.info('Entered upsertProduct');
     const res = await this.repo.upsertProduct(p);
-    Logger.info('Exiting upsertProduct', res);
+    console.info('Exiting upsertProduct', res);
   }
 }
