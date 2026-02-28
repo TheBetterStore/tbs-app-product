@@ -21,7 +21,7 @@ exports.handler = async (event, context) => {
     if (params.id) {
       const p = await svc.getProduct(params.id);
       console.debug('Retrieved product:', p);
-      const response = HttpUtils.buildJsonResponse(200, p, {});
+      const response = HttpUtils.buildJsonResponse(200, p, event?.headers?.origin || '');
       console.debug('Returning response:', response);
       console.info('Exiting handler');
       return response;
@@ -33,7 +33,7 @@ exports.handler = async (event, context) => {
     }
     const p = await svc.getProducts(category);
     console.debug('Retrieved products:', p);
-    const response = HttpUtils.buildJsonResponse(200, p, {});
+    const response = HttpUtils.buildJsonResponse(200, p, event?.headers?.origin || '');
     console.debug('Returning response:', response);
     console.info('Exiting handler');
     return response;

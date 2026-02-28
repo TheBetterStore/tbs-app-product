@@ -18,6 +18,10 @@ Parameters:
     Type: String
     Default: DEBUG
 
+  AllowedCorsDomains:
+    Type: String
+    Description: Define allowed client UI domains here. Use commas to separate if multiple.
+
 Resources:
 
   ProductTable:
@@ -73,7 +77,7 @@ Resources:
       Environment:
         Variables:
           PRODUCT_TABLE_NAME: !Ref ProductTable
-          ALLOWED_CORS_DOMAINS: "http://localhost:4200,https://*.thebetterstore.net"
+          ALLOWED_CORS_DOMAINS: !Ref AllowedCorsDomains
       Policies:
         - Statement:
             - Sid: DynamoDbPolicy
@@ -96,7 +100,7 @@ Resources:
   GetProductsFunctionLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub "${AWS::StackName}-GetProductsFunction"
+      LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-GetProductsFunction"
 
   UpsertProductFunction:
     Type: AWS::Serverless::Function
@@ -117,7 +121,7 @@ Resources:
       Environment:
         Variables:
           PRODUCT_TABLE_NAME: !Ref ProductTable
-          ALLOWED_CORS_DOMAINS: "http://localhost:4200,https://*.thebetterstore.net"
+          ALLOWED_CORS_DOMAINS: !Ref AllowedCorsDomains
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref ProductTable
@@ -133,7 +137,7 @@ Resources:
   UpsertProductFunctionLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub "${AWS::StackName}-UpsertProductFunction"
+      LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-UpsertProductFunction"
 
   CWLogGroupApiGwAccessLogs:
     Type: AWS::Logs::LogGroup

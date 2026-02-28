@@ -15,7 +15,7 @@ exports.handler = async (event, context) => {
   const svc = container.get<IProductService>(TYPES.IProductService);
   await svc.upsertProduct(product);
   console.debug('Upserted product:', product);
-  const response = HttpUtils.buildJsonResponse(204, {}, {});
+  const response = HttpUtils.buildJsonResponse(204, {}, event?.headers?.origin || '');
   console.info('Exiting handler');
   return response;
 };
