@@ -33,12 +33,18 @@ exports.handler = async (event: S3Event, context) => {
     // @ts-ignore
     const p: IProduct = {
       productId: tokens[0],
-      category: (tokens[2] == 'COMPUTERS' ? 'COMPUTERS': 'BOOKS'),
-      name: tokens[1],
-      description: tokens[3],
-      type: 'PHYSICAL',
+      productDetails: {
+        brandId: tokens[1],
+        sku: tokens[5],
+      },
+      brandId: tokens[1],
       sku: tokens[5],
+      category: (tokens[2] == 'COMPUTERS' ? 'COMPUTERS': 'BOOKS'),
+      name: tokens[3],
+      description: tokens[4],
+      type: 'PHYSICAL',
       imageUrl: tokens[6],
+      smallImageUrl: tokens[6],
       smallerImageUrl: tokens[6],
       price: Number(tokens[7]),
     };
