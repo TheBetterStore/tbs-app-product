@@ -9,9 +9,6 @@ exports.handler = async (event, context) => {
   console.info('Entered handler');
   console.debug('request content:', event);
 
-  const productTableName = process.env.PRODUCT_TABLE_NAME || '';
-  container.bind<string>(TYPES.ProductTableName).toConstantValue(productTableName);
-
   const queryStringParams = event.queryStringParameters;
 
   const svc = container.get<IProductService>(TYPES.IProductService);

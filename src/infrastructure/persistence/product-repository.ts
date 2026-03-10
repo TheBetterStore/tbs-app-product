@@ -2,17 +2,17 @@ import {IProductRepository} from '../interfaces/product-repository.interface';
 import {inject, injectable} from 'inversify';
 import TYPES from '../types';
 import {IProduct} from '../../domain/models/product.interface';
-import {IDynamoDBClient} from '../interfaces/dynamodb-client.interface';
-import {DocumentClient} from 'aws-sdk/clients/dynamodb';
+import {IAwsDynamoDBClient} from '../interfaces/aws-dynamodb-client.interface';
 import {v4} from 'uuid';
+import {GetCommandInput, PutCommandInput} from '@aws-sdk/lib-dynamodb';
 const util = require('util');
 
 @injectable()
 export class ProductRepository implements IProductRepository {
-  private ddbClient: IDynamoDBClient;
+  private ddbClient: IAwsDynamoDBClient;
   private productTableName: string;
 
-  constructor(@inject(TYPES.IDynamoDBClient) ddbClient: IDynamoDBClient,
+  constructor(@inject(TYPES.IAwsDynamoDBClient) ddbClient: IAwsDynamoDBClient,
               @inject(TYPES.ProductTableName) productTableName: string) {
     this.ddbClient = ddbClient;
     this.productTableName = productTableName;
@@ -21,7 +21,7 @@ export class ProductRepository implements IProductRepository {
   async getProduct(productId: string): Promise<IProduct> {
     console.info('Entered ProductRepository.getProduct');
     console.debug(`Retrieving product with is ${productId}`);
-    const params: DocumentClient.GetItemInput = {
+    const params: GetCommandInput = {
       TableName: this.productTableName,
       Key: {
         'productId': productId,
@@ -63,7 +63,7 @@ export class ProductRepository implements IProductRepository {
     }
     p.lastUpdatedTime = currentTime.toISOString();
 
-    const params: DocumentClient.PutItemInput = {
+    const params: PutCommandInput = {
       TableName: this.productTableName,
       Item: p,
       ReturnValues: 'ALL_OLD',

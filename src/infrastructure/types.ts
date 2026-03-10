@@ -1,7 +1,7 @@
 const TYPES = {
   IProductRepository: Symbol('IProductRepository'),
   IProductService: Symbol('IProductService'),
-  IDynamoDBClient: Symbol('IDynamoDBClient'),
+  IAwsDynamoDBClient: Symbol('IAwsDynamoDBClient'),
   ProductTableName: Symbol('ProductTableName'),
 };
 

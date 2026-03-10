@@ -9,8 +9,6 @@ console.log('INFO - lambda is cold-starting.');
 exports.handler = async (event, context) => {
   console.info('Entered handler');
 
-  const productTableName = process.env.PRODUCT_TABLE_NAME || '';
-  container.bind<string>(TYPES.ProductTableName).toConstantValue(productTableName);
   const product: IProduct = JSON.parse(event.body);
   const svc = container.get<IProductService>(TYPES.IProductService);
   await svc.upsertProduct(product);
