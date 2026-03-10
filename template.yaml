@@ -24,6 +24,24 @@ Parameters:
 
 Resources:
 
+  ProductUploadBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}-product-upload"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      NotificationConfiguration:
+        LambdaConfigurations:
+          - Event: s3:ObjectCreated:*
+            Function: !GetAtt UploadProductsFunction.Arn
+            
   ProductTable:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Retain
@@ -35,9 +53,7 @@ Resources:
       KeySchema:
         - AttributeName: "productId"
           KeyType: "HASH"
-      ProvisionedThroughput:
-        ReadCapacityUnits: 1
-        WriteCapacityUnits: 1
+      BillingMode: PAY_PER_REQUEST
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: false
 
@@ -56,6 +72,82 @@ Resources:
               - "sts:AssumeRole"
       ManagedPolicyArns:
         - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+
+  UploadProductsLambdaExcecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: "/"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+      Policies:
+        - PolicyName: !Sub UploadProductsLambdaExcecutionRolePolicies
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: DynamoDbPolicy
+                Effect: Allow
+                Action:
+                  - dynamodb:PutItem*
+                Resource: !GetAtt ProductTable.Arn
+              - Sid: S3Policy
+                Effect: Allow
+                Action:
+                  - s3:ListBucket
+                  - s3:GetObject*
+                Resource:
+                  - !Sub "arn:aws:s3:::${AWS::StackName}-${AWS::AccountId}-${AWS::Region}-product-upload"
+                  - !Sub "arn:aws:s3:::${AWS::StackName}-${AWS::AccountId}-${AWS::Region}-product-upload/*"
+
+  UploadProductsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./
+      Handler: event-handlers/upload-products/index.handler
+      Runtime: nodejs24.x
+      MemorySize: 256
+      Timeout: 100
+      Description: Upload products function
+      ReservedConcurrentExecutions: 1
+      Tracing: Active
+      LoggingConfig:
+        LogGroup: !Ref UploadProductsFunctionLogGroup
+        LogFormat: JSON
+        ApplicationLogLevel: !Ref AppLoggingLevel
+      Environment:
+        Variables:
+          PRODUCT_TABLE_NAME: !Ref ProductTable
+          ALLOWED_CORS_DOMAINS: !Ref AllowedCorsDomains
+      Role: !GetAtt UploadProductsLambdaExcecutionRole.Arn
+    Metadata: # Manage esbuild properties
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: false
+        Target: "es2020"
+        Sourcemap: true
+        EntryPoints:
+          - src/application/event-handlers/upload-products/index.ts
+
+  UploadProductsFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-UploadProductsFunction"
+
+  UploadProductsFunctionS3Permission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt UploadProductsFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: s3.amazonaws.com
+      SourceArn: !GetAtt ProductUploadBucket.Arn
 
   GetProductsFunction:
     Type: AWS::Serverless::Function

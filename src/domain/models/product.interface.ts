@@ -1,16 +1,18 @@
 export interface IProduct {
   productId?: string;
   category: 'BOOKS' | 'COMPUTERS';
+  brandId?: string; // Deprecated
   name: string;
   type: 'PHYSICAL' | 'DIGITAL';
   bookDetails?: IBookDetails;
   mobileDetails?: IMobileDetails;
   productDetails?: IProductDetails;
-  sku: string;
+  sku?: string; // Deprecated
   description: string;
   price: number;
   hitCount: number;
   imageUrl: string;
+  smallImageUrl: string
   smallerImageUrl: string
   lastUpdatedTime: string;
 }

@@ -1,0 +1,1 @@
+aws s3 cp ./tests/data/laptops2.txt s3://tbs-app-product-prod-048116471576-ap-southeast-2-product-upload
